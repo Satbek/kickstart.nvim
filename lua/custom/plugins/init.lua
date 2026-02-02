@@ -2,6 +2,15 @@
 --  I promise not to create any merge conflicts in this directory :)
 --
 -- See the kickstart.nvim README for more information
+
+local function is_nvim_config_dir()
+  local bufname = vim.api.nvim_buf_get_name(0)
+  if bufname == '' then return false end
+
+  local config_dir = vim.fn.stdpath 'config'
+  return vim.startswith(bufname, config_dir)
+end
+
 return {
   { -- Autoformat
     'stevearc/conform.nvim',
@@ -10,28 +19,31 @@ return {
     keys = {
       {
         '<leader>f',
-        function() require('conform').format { async = true, lsp_format = 'fallback' } end,
+        function()
+          if not is_nvim_config_dir() then return end
+          require('conform').format { async = true, lsp_format = 'fallback' }
+        end,
         mode = '',
         desc = '[F]ormat buffer',
       },
     },
     opts = {
       notify_on_error = false,
-      -- only <leader>f to format things
-      -- format_on_save = function(bufnr)
-      --   -- Disable "format_on_save lsp_fallback" for languages that don't
-      --   -- have a well standardized coding style. You can add additional
-      --   -- languages here or re-enable it for the disabled ones.
-      --   local disable_filetypes = { c = true, cpp = true }
-      --   if disable_filetypes[vim.bo[bufnr].filetype] then
-      --     return nil
-      --   else
-      --     return {
-      --       timeout_ms = 500,
-      --       lsp_format = 'fallback',
-      --     }
-      --   end
-      -- end,
+      format_on_save = function(bufnr)
+        if not is_nvim_config_dir() then return end
+        -- Disable "format_on_save lsp_fallback" for languages that don't
+        -- have a well standardized coding style. You can add additional
+        -- languages here or re-enable it for the disabled ones.
+        local disable_filetypes = { c = true, cpp = true }
+        if disable_filetypes[vim.bo[bufnr].filetype] then
+          return nil
+        else
+          return {
+            timeout_ms = 500,
+            lsp_format = 'fallback',
+          }
+        end
+      end,
       formatters_by_ft = {
         lua = { 'stylua' },
         -- Conform can also run multiple formatters sequentially
