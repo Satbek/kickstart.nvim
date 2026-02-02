@@ -9,6 +9,31 @@ return {
         markdown = { 'markdownlint' },
         lua = { 'luacheck' },
       }
+      local luacheck = lint.linters.luacheck
+
+      luacheck.args = {
+        '--config',
+        function()
+          -- 1. Get the absolute path to the directory of the current file
+          local current_dir = vim.fn.expand '%:p:h'
+
+          -- 2. Traverse upwards to the root directory
+          -- vim.fs.find with upward = true is the most stable way to do this in Neovim
+          local found = vim.fs.find('.luacheckrc', {
+            upward = true,
+            path = current_dir,
+            stop = vim.loop.os_homedir(), -- Optional: stop at home dir to avoid scanning root
+          })
+
+          -- 3. If found, return the first match (it will be the closest one)
+          if #found > 0 then return found[1] end
+
+          -- 4. Fallback to your global config
+          -- stdpath('config') points to your ~/.config/nvim/
+          return vim.fs.joinpath(vim.fn.stdpath 'config', '.luacheckrc')
+        end,
+        unpack(luacheck.args),
+      }
 
       -- To allow other plugins to add linters to require('lint').linters_by_ft,
       -- instead set linters_by_ft like this:

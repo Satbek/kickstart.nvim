@@ -616,7 +616,8 @@ require('lazy').setup({
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
         'lua_ls', -- Lua Language server
-        'stylua', -- Used to format Lua code
+        'stylua', -- Used to format Lua code in .config dir
+        'luacheck', -- Used to lint Lua code
         -- You can add other tools here that you want Mason to install
       })
 
@@ -640,6 +641,9 @@ require('lazy').setup({
             runtime = {
               version = 'LuaJIT',
               path = { 'lua/?.lua', 'lua/?/init.lua' },
+            },
+            diagnostics = {
+              globals = { 'box', 'package', '_G', 'require', 'debug' },
             },
             workspace = {
               checkThirdParty = false,
