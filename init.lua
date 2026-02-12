@@ -623,6 +623,7 @@ require('lazy').setup({
         'goimports',
         'golines', -- split big strings in go
         'golangci-lint', -- go linter
+        'markdownlint', -- markdown linter
         -- You can add other tools here that you want Mason to install
       })
 
