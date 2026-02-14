@@ -106,6 +106,38 @@ return {
               },
             })
           end,
+          grok_xai = function()
+            return require('codecompanion.adapters').extend('openai_responses', {
+              name = 'grok_xai',
+              url = 'https://api.x.ai/v1/responses',
+              env = {
+                api_key = 'XAI_API_KEY',
+              },
+              schema = {
+                model = {
+                  choices = {
+                    'grok-code-fast-1',
+                    'grok-4-1-fast-reasoning',
+                    'grok-4-1-fast-non-reasoning',
+                    'grok-4',
+                  },
+                  default = 'grok-code-fast-1',
+                },
+              },
+            })
+          end,
+          grok_xai_compatible = function()
+            return require('codecompanion.adapters').extend('openai_compatible', {
+              name = 'grok_xai_compatible',
+              env = {
+                url = 'https://api.x.ai',
+                api_key = 'XAI_API_KEY',
+                chat_url = '/v1/chat/completions',
+                models_endpoint = '/v1/models',
+              },
+            })
+          end,
+
           opts = {
             show_presets = false,
           },
