@@ -24,9 +24,9 @@ return {
     'nvim-treesitter/nvim-treesitter',
   },
   keys = {
-    { '<C-a>', '<cmd>CodeCompanionActions<cr>', mode = { 'n', 'v' } },
-    { '<LocalLeader>a', '<cmd>CodeCompanionChat Toggle<cr>', mode = { 'n', 'v' } },
-    { 'ga', '<cmd>CodeCompanionChat Add<cr>', mode = 'v' },
+    { '<leader>ca', '<cmd>CodeCompanionActions<cr>', mode = { 'n', 'v' }, desc = 'CodeCompanion: Actions' },
+    { '<LocalLeader>a', '<cmd>CodeCompanionChat Toggle<cr>', mode = { 'n', 'v' }, desc = 'CodeCompanion: Toggle chat' },
+    { 'ga', '<cmd>CodeCompanionChat Add<cr>', mode = 'v', desc = 'CodeCompanion: Add selection to chat' },
   },
   config = function()
     local config = {
