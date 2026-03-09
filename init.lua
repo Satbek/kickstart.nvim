@@ -850,6 +850,7 @@ require('lazy').setup({
         'sql',
         'json',
         'comment',
+        'yaml',
       }
       require('nvim-treesitter').install(filetypes)
       vim.api.nvim_create_autocmd('FileType', {
