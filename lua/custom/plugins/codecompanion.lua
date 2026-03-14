@@ -30,6 +30,13 @@ return {
   },
   config = function()
     local config = {
+      prompt_library = {
+        markdown = {
+          dirs = {
+            vim.fn.getcwd() .. '/.codecompanion', -- Can be relative
+          },
+        },
+      },
       interactions = {
         -- todo: if there are .hobby file use codex, othervise primate ai
         chat = {
@@ -80,8 +87,12 @@ return {
           -- mini_diff: use mini.diff UI/signs (requires mini.diff to be set up and available)
           provider = 'inline',
         },
+        action_palette = {
+          opts = {
+            show_preset_prompts = true,
+          },
+        },
       },
-
       adapters = {
         http = {
           private_ai = function()
