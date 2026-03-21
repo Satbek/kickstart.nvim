@@ -780,9 +780,12 @@ require('lazy').setup({
       },
 
       completion = {
-        -- By default, you may press `<c-space>` to show the documentation.
-        -- Optionally, set `auto_show = true` to show the documentation after a delay.
-        documentation = { auto_show = false, auto_show_delay_ms = 500 },
+        -- Show documentation automatically when moving through completion items.
+        documentation = {
+          auto_show = true,
+          -- Keep a small delay so the docs window does not flicker while navigating.
+          auto_show_delay_ms = 200,
+        },
       },
 
       sources = {
@@ -800,8 +803,22 @@ require('lazy').setup({
       -- See :h blink-cmp-config-fuzzy for more information
       fuzzy = { implementation = 'lua' },
 
-      -- Shows a signature help window while you type arguments for a function
-      signature = { enabled = true },
+      -- Show signature help automatically while typing function arguments.
+      signature = {
+        enabled = true,
+        trigger = {
+          -- Let LSP trigger characters such as `(` open the signature window.
+          show_on_trigger_character = true,
+          -- Re-open signature help after accepting a completion item like `fmt.Printf(`.
+          show_on_accept = true,
+          -- Keep showing signature help when the accepted item leaves the cursor after a trigger char.
+          show_on_accept_on_trigger_character = true,
+        },
+        window = {
+          -- Include docs together with the signature so the popup is more informative.
+          show_documentation = true,
+        },
+      },
     },
   },
 
