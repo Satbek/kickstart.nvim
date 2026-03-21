@@ -600,7 +600,48 @@ require('lazy').setup({
       --  See `:help lsp-config` for information about keys and how to configure
       local servers = {
         -- clangd = {},
-        gopls = {},
+        gopls = {
+          settings = {
+            gopls = {
+              analyses = {
+                -- Warn about code paths that will definitely panic on nil values.
+                nilness = true,
+                -- Catch accidental variable shadowing in nested scopes.
+                shadow = true,
+                -- Highlight function parameters that are never used.
+                unusedparams = true,
+                -- Highlight assignments that are overwritten before being read.
+                unusedwrite = true,
+                -- Prefer `any` where modern Go style expects it.
+                useany = true,
+              },
+              -- Suggest completion items from packages that are not imported yet.
+              completeUnimported = true,
+              -- Keep gopls formatting aligned with gofumpt-style output.
+              gofumpt = true,
+              -- Enable the stricter staticcheck analyzer suite inside gopls.
+              staticcheck = true,
+              -- Insert argument placeholders when completing function calls.
+              usePlaceholders = true,
+              hints = {
+                -- Show inferred types on variable assignments.
+                assignVariableTypes = true,
+                -- Show field names when constructing composite literals.
+                compositeLiteralFields = true,
+                -- Show literal target types when they are inferred.
+                compositeLiteralTypes = true,
+                -- Show resolved constant values inline.
+                constantValues = true,
+                -- Show inferred function type parameters.
+                functionTypeParameters = true,
+                -- Show parameter names at call sites.
+                parameterNames = true,
+                -- Show inferred types for range loop variables.
+                rangeVariableTypes = true,
+              },
+            },
+          },
+        },
         -- pyright = {},
         -- rust_analyzer = {},
         --
@@ -623,7 +664,6 @@ require('lazy').setup({
         'lua_ls', -- Lua Language server
         'stylua', -- Used to format Lua code in .config dir
         'luacheck', -- Used to lint Lua code
-        'gopls', -- Go LSP
         'gofumpt', -- gofmt
         'goimports',
         'golines', -- split big strings in go
