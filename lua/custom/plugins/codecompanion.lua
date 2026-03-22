@@ -30,6 +30,18 @@ return {
   keys = {
     { '<leader>ca', '<cmd>CodeCompanionActions<cr>', mode = { 'n', 'v' }, desc = 'CodeCompanion: Actions' },
     { '<LocalLeader>a', '<cmd>CodeCompanionChat Toggle<cr>', mode = { 'n', 'v' }, desc = 'CodeCompanion: Toggle chat' },
+    {
+      '<LocalLeader>cc',
+      function() require('codecompanion').cli { agent = 'codex' } end,
+      mode = 'n',
+      desc = 'CodeCompanion: Codex CLI',
+    },
+    {
+      '<LocalLeader>cp',
+      function() require('codecompanion').cli { agent = 'codex', prompt = true } end,
+      mode = { 'n', 'v' },
+      desc = 'CodeCompanion: Prompt Codex CLI',
+    },
     { 'ga', '<cmd>CodeCompanionChat Add<cr>', mode = 'v', desc = 'CodeCompanion: Add selection to chat' },
   },
   config = function()
@@ -72,6 +84,18 @@ return {
             },
             opts = {
               enabled = true,
+            },
+          },
+        },
+        cli = {
+          -- Keep the Codex CLI explicit. This makes the workflow available
+          -- without turning Codex into the default CLI agent globally.
+          agents = {
+            codex = {
+              cmd = 'codex',
+              args = {},
+              description = 'OpenAI Codex CLI',
+              provider = 'terminal',
             },
           },
         },
