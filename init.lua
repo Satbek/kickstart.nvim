@@ -159,6 +159,15 @@ vim.o.cursorline = true
 -- Minimal number of screen lines to keep above and below the cursor.
 vim.o.scrolloff = 10
 
+-- Use Tree-sitter for code folding. Keep files fully expanded when opened.
+vim.o.foldenable = true
+vim.o.foldcolumn = 'auto:1'
+vim.o.foldmethod = 'expr'
+vim.o.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+vim.o.foldtext = ''
+vim.o.foldlevel = 99
+vim.o.foldlevelstart = 99
+
 -- if performing an operation that would fail due to unsaved changes in the buffer (like `:q`),
 -- instead raise a dialog asking if you wish to save the current file(s)
 -- See `:help 'confirm'`
@@ -170,6 +179,12 @@ vim.o.confirm = true
 -- Clear highlights on search when pressing <Esc> in normal mode
 --  See `:help hlsearch`
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
+
+vim.keymap.set('n', '<leader>zc', 'zM', { desc = '[Z] Close all folds' })
+vim.keymap.set('n', '<leader>zm', 'zm', { desc = '[Z] Fold more' })
+vim.keymap.set('n', '<leader>zo', 'zR', { desc = '[Z] Open all folds' })
+vim.keymap.set('n', '<leader>zr', 'zr', { desc = '[Z] Fold less' })
+vim.keymap.set('n', '<leader>zt', 'za', { desc = '[Z] Toggle fold under cursor' })
 
 -- Diagnostic Config & Keymaps
 -- See :help vim.diagnostic.Opts
