@@ -129,11 +129,12 @@ return {
                 model = {
                   choices = {
                     'glm-5',
+                    'glm-5.1',
                     'glm-4.7',
                     'qwen-3-32b',
                     'kimi-k2.5',
                   },
-                  default = 'glm-5',
+                  default = 'glm-5.1',
                 },
               },
             })
