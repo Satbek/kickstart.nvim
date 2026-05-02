@@ -203,6 +203,13 @@ vim.diagnostic.config {
   jump = { float = true },
 }
 
+vim.keymap.set('n', '<leader>td', function()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local enabled = vim.diagnostic.is_enabled { bufnr = bufnr }
+  vim.diagnostic.enable(not enabled, { bufnr = bufnr })
+  vim.notify('Diagnostics ' .. (enabled and 'disabled' or 'enabled') .. ' for current buffer', vim.log.levels.INFO)
+end, { desc = '[T]oggle [D]iagnostics' })
+
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
@@ -328,6 +335,7 @@ require('lazy').setup({
       spec = {
         { '<leader>s', group = '[S]earch', mode = { 'n', 'v' } },
         { '<leader>t', group = '[T]oggle' },
+        { '<leader>m', group = '[M]arkdown' },
         { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } },
       },
     },
