@@ -132,8 +132,9 @@ vim.o.signcolumn = 'yes'
 -- Decrease update time
 vim.o.updatetime = 250
 
--- Decrease mapped sequence wait time
-vim.o.timeoutlen = 300
+-- Keep key-sequence timeout short, but forgiving enough for multi-key mappings
+-- like `sa` / `sd` / `sr` while learning.
+vim.o.timeoutlen = 500
 
 -- Configure how new splits should be opened
 vim.o.splitright = true
