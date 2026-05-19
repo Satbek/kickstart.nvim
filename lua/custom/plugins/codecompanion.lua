@@ -153,8 +153,9 @@ return {
                     'grok-4-1-fast-reasoning',
                     'grok-4-1-fast-non-reasoning',
                     'grok-4',
+                    'grok-4.3',
                   },
-                  default = 'grok-code-fast-1',
+                  default = 'grok-4.3',
                 },
               },
             })

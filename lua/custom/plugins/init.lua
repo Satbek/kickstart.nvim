@@ -47,7 +47,7 @@ return {
         -- Disable "format_on_save lsp_fallback" for languages that don't
         -- have a well standardized coding style. You can add additional
         -- languages here or re-enable it for the disabled ones.
-        local disable_filetypes = { c = true, cpp = true }
+        local disable_filetypes = {} -- no filetypes disabled
         if disable_filetypes[vim.bo[bufnr].filetype] then
           return nil
         else
@@ -59,6 +59,8 @@ return {
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
+        c = { 'clang-format' },
+        cpp = { 'clang-format' },
         -- Run import organization before final formatting for Go buffers.
         go = { 'goimports', 'gofumpt' },
         -- Conform can also run multiple formatters sequentially

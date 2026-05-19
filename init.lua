@@ -333,6 +333,7 @@ require('lazy').setup({
 
       -- Document existing key chains
       spec = {
+        { '<leader>o', group = '[O]bsidian' },
         { '<leader>s', group = '[S]earch', mode = { 'n', 'v' } },
         { '<leader>t', group = '[T]oggle' },
         { '<leader>m', group = '[M]arkdown' },
@@ -429,7 +430,17 @@ require('lazy').setup({
       local builtin = require 'telescope.builtin'
       vim.keymap.set('n', '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
       vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
-      vim.keymap.set('n', '<leader>sf', builtin.find_files, { desc = '[S]earch [F]iles' })
+      vim.keymap.set(
+        'n',
+        '<leader>sf',
+        function()
+          builtin.find_files {
+            hidden = true,
+            no_ignore = true,
+          }
+        end,
+        { desc = '[S]earch [F]iles incl. ignored' }
+      )
       vim.keymap.set('n', '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
       vim.keymap.set({ 'n', 'v' }, '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
       vim.keymap.set('n', '<leader>sg', builtin.live_grep, { desc = '[S]earch by [G]rep' })
@@ -623,7 +634,7 @@ require('lazy').setup({
       --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
       --  See `:help lsp-config` for information about keys and how to configure
       local servers = {
-        -- clangd = {},
+        clangd = {},
         gopls = {
           settings = {
             gopls = {
@@ -688,6 +699,7 @@ require('lazy').setup({
         'lua_ls', -- Lua Language server
         'stylua', -- Used to format Lua code in .config dir
         'luacheck', -- Used to lint Lua code
+        'clang-format', -- C/C++ formatter
         'gofumpt', -- gofmt
         'goimports',
         'golines', -- split big strings in go
