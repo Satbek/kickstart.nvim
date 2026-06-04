@@ -42,6 +42,12 @@ return {
       mode = { 'n', 'v' },
       desc = 'CodeCompanion: Prompt Codex CLI',
     },
+    {
+      '<LocalLeader>cl',
+      function() require('codecompanion').cli { agent = 'claude_code' } end,
+      mode = 'n',
+      desc = 'CodeCompanion: Claude Code CLI',
+    },
     { 'ga', '<cmd>CodeCompanionChat Add<cr>', mode = 'v', desc = 'CodeCompanion: Add selection to chat' },
   },
   config = function()
@@ -97,6 +103,12 @@ return {
               description = 'OpenAI Codex CLI',
               provider = 'terminal',
             },
+            claude_code = {
+              cmd = 'claude',
+              args = {},
+              description = 'Claude Code CLI',
+              provider = 'terminal',
+            },
           },
         },
       },
@@ -133,6 +145,10 @@ return {
                     'glm-4.7',
                     'qwen-3-32b',
                     'kimi-k2.5',
+                    'claude-opus-4-8',
+                    'claude-sonnet-4-6',
+                    'deepseek-v4-pro',
+                    'claude-haiku-4-5',
                   },
                   default = 'glm-5.1',
                 },
@@ -184,6 +200,13 @@ return {
             return require('codecompanion.adapters').extend('codex', {
               defaults = {
                 auth_method = 'chatgpt',
+              },
+            })
+          end,
+          claude_code = function()
+            return require('codecompanion.adapters').extend('claude_code', {
+              env = {
+                CLAUDE_CODE_OAUTH_TOKEN = 'CLAUDE_CODE_OAUTH_TOKEN',
               },
             })
           end,
