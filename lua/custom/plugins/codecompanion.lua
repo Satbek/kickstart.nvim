@@ -21,6 +21,82 @@ local function chat_adapter_for_project()
   return 'private_ai'
 end
 
+local private_ai_reasoning_effort = 'off'
+local private_ai_reasoning_choices = {
+  'off',
+  'minimal',
+  'low',
+  'medium',
+  'high',
+  'xhigh',
+}
+
+local function is_private_ai_reasoning_effort(value) return vim.tbl_contains(private_ai_reasoning_choices, value) end
+
+local function private_ai_map_schema_to_params(adapter, settings)
+  settings = vim.deepcopy(settings or adapter:make_from_schema())
+
+  if settings.reasoning_effort == nil or settings.reasoning_effort == 'off' then
+    if adapter.parameters ~= nil then adapter.parameters.reasoning_effort = nil end
+    settings.reasoning_effort = nil
+  end
+
+  return require('codecompanion.adapters.http').map_schema_to_params(adapter, settings)
+end
+
+local function private_ai_parse_meta(_, data)
+  local extra = data.extra
+  if extra == nil then return data end
+
+  local reasoning_content = extra.reasoning_content or extra.reasoning_text
+  if reasoning_content then
+    data.output = data.output or {}
+    data.output.reasoning = { content = reasoning_content }
+    if data.output.content == '' then data.output.content = nil end
+  end
+
+  return data
+end
+
+local function codecompanion_llm_role(adapter)
+  local model = adapter.model and adapter.model.name
+  local role = 'CodeCompanion (' .. adapter.formatted_name
+  if model ~= nil then role = role .. ':' .. model end
+
+  if adapter.name == 'private_ai' then role = role .. '; reasoning=' .. private_ai_reasoning_effort end
+
+  return role .. ')'
+end
+
+local function set_private_ai_reasoning_effort(value)
+  if not is_private_ai_reasoning_effort(value) then
+    vim.notify('PrivateAIReasoning: unknown value `' .. value .. '`', vim.log.levels.ERROR)
+    return
+  end
+
+  private_ai_reasoning_effort = value
+
+  local chat = require('codecompanion').last_chat()
+  if chat ~= nil and chat.adapter ~= nil and chat.adapter.name == 'private_ai' and chat.settings ~= nil then
+    chat.settings.reasoning_effort = value
+    chat:apply_settings(chat.settings)
+  end
+
+  vim.notify('private_ai reasoning_effort = ' .. value)
+end
+
+local function select_private_ai_reasoning_effort()
+  vim.ui.select(private_ai_reasoning_choices, {
+    prompt = 'private_ai reasoning_effort',
+    format_item = function(value)
+      local current = value == private_ai_reasoning_effort and ' *' or ''
+      return value .. current
+    end,
+  }, function(value)
+    if value ~= nil then set_private_ai_reasoning_effort(value) end
+  end)
+end
+
 return {
   'olimorris/codecompanion.nvim',
   dependencies = {
@@ -49,6 +125,7 @@ return {
       desc = 'CodeCompanion: Claude Code CLI',
     },
     { 'ga', '<cmd>CodeCompanionChat Add<cr>', mode = 'v', desc = 'CodeCompanion: Add selection to chat' },
+    { 'gA', '<cmd>PrivateAIReasoning<cr>', mode = 'n', desc = 'CodeCompanion: Select private_ai reasoning' },
   },
   config = function()
     require('codecompanion').setup {
@@ -63,12 +140,7 @@ return {
         chat = {
           adapter = 'private_ai',
           roles = {
-            llm = function(adapter)
-              if adapter.model ~= nil and adapter.model.name ~= nil then
-                return 'CodeCompanion (' .. adapter.formatted_name .. ':' .. adapter.model.name .. ')'
-              end
-              return 'CodeCompanion (' .. adapter.formatted_name .. ')'
-            end,
+            llm = codecompanion_llm_role,
             user = 'Me',
           },
         },
@@ -137,8 +209,16 @@ return {
                 chat_url = '/v1/chat/completions',
                 models_endpoint = '/v1/models',
               },
+              map_schema_to_params = private_ai_map_schema_to_params,
+              handlers = {
+                parse_message_meta = private_ai_parse_meta,
+              },
               schema = {
                 model = {
+                  order = 1,
+                  mapping = 'parameters',
+                  type = 'enum',
+                  desc = 'ID модели private_ai.',
                   choices = {
                     'glm-5',
                     'glm-5.1',
@@ -151,6 +231,15 @@ return {
                     'claude-haiku-4-5',
                   },
                   default = 'glm-5.1',
+                },
+                reasoning_effort = {
+                  order = 2,
+                  mapping = 'parameters',
+                  type = 'enum',
+                  optional = true,
+                  default = function() return private_ai_reasoning_effort end,
+                  choices = private_ai_reasoning_choices,
+                  desc = 'Reasoning effort для private_ai. off = не отправлять параметр; остальные значения уходят как reasoning_effort.',
                 },
               },
             })
@@ -232,6 +321,17 @@ return {
     end
 
     sync_runtime_config()
+
+    vim.api.nvim_create_user_command('PrivateAIReasoning', function(opts)
+      if opts.args == '' then
+        select_private_ai_reasoning_effort()
+      else
+        set_private_ai_reasoning_effort(opts.args)
+      end
+    end, {
+      nargs = '?',
+      complete = function() return private_ai_reasoning_choices end,
+    })
 
     vim.api.nvim_create_autocmd({ 'BufEnter', 'DirChanged' }, {
       group = vim.api.nvim_create_augroup('codecompanion-project-context', { clear = true }),
