@@ -178,6 +178,7 @@ Obsidian включается только если задан `OBSIDIAN_VAULT`.
 ## 13. AI-команды из твоего конфига
 
 Это уже не базовый Neovim, а твой `CodeCompanion`.
+`:PrivateAIReasoning` открывает выбор reasoning для `private_ai`; `off` ничего не отправляет.
 
 | Команда | Что делает | Комментарий |
 |---|---|---|
@@ -186,3 +187,5 @@ Obsidian включается только если задан `OBSIDIAN_VAULT`.
 | `Space cc` | запустить Codex CLI | отдельная CLI-сессия |
 | `Space cp` | запустить Codex CLI с prompt | удобно для разовых задач |
 | `ga` | отправить выделенный текст в AI chat | работает в visual mode |
+| `gA` | выбрать reasoning для `private_ai` | открывает picker |
+| `:PrivateAIReasoning` | выбрать reasoning для `private_ai` | можно сразу `:PrivateAIReasoning high` |

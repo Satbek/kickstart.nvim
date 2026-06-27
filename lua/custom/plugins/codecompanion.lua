@@ -222,15 +222,16 @@ return {
                   choices = {
                     'glm-5',
                     'glm-5.1',
-                    'glm-4.7',
-                    'qwen-3-32b',
+                    'glm-5.2',
+                    'qwen3-32b',
                     'kimi-k2.5',
                     'claude-opus-4-8',
                     'claude-sonnet-4-6',
                     'deepseek-v4-pro',
                     'claude-haiku-4-5',
+                    'MiniMax-M3',
                   },
-                  default = 'glm-5.1',
+                  default = 'glm-5.2',
                 },
                 reasoning_effort = {
                   order = 2,
@@ -240,6 +241,45 @@ return {
                   default = function() return private_ai_reasoning_effort end,
                   choices = private_ai_reasoning_choices,
                   desc = 'Reasoning effort для private_ai. off = не отправлять параметр; остальные значения уходят как reasoning_effort.',
+                },
+              },
+            })
+          end,
+          -- Native Anthropic adapter pointed at the private_ai proxy's
+          -- `/v1/messages` endpoint. Unlike the OpenAI-compatible `private_ai`
+          -- adapter (`/v1/chat/completions`), this one emits Anthropic
+          -- `cache_control` breakpoints, so Claude prompt caching actually
+          -- works and cache token usage is reported. Use it for Claude models;
+          -- keep `private_ai` for glm/qwen/kimi/deepseek/minimax.
+          private_ai_anthropic = function()
+            return require('codecompanion.adapters').extend('anthropic', {
+              name = 'private_ai_anthropic',
+              formatted_name = 'Private AI (Anthropic)',
+              env = {
+                url = 'PRIVATE_AI_LLM_PROXY_URL',
+                api_key = 'PRIVATE_AI_API_KEY',
+              },
+              url = '${url}/v1/messages',
+              schema = {
+                model = {
+                  default = 'claude-opus-4-8',
+                  choices = {
+                    ['claude-opus-4-8'] = {
+                      formatted_name = 'Claude Opus 4.8',
+                      meta = { context_window = 1000000, max_tokens = 128000 },
+                      opts = { can_reason = true, has_vision = true },
+                    },
+                    ['claude-sonnet-4-6'] = {
+                      formatted_name = 'Claude Sonnet 4.6',
+                      meta = { context_window = 1000000, max_tokens = 128000 },
+                      opts = { can_reason = true, has_vision = true },
+                    },
+                    ['claude-haiku-4-5'] = {
+                      formatted_name = 'Claude Haiku 4.5',
+                      meta = { context_window = 200000, max_tokens = 64000 },
+                      opts = { can_reason = false, has_vision = true },
+                    },
+                  },
                 },
               },
             })
