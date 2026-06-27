@@ -186,6 +186,7 @@ Obsidian включается только если задан `OBSIDIAN_VAULT`.
 | `Space a` | открыть или скрыть AI chat | чат внутри Neovim |
 | `Space cc` | запустить Codex CLI | отдельная CLI-сессия |
 | `Space cp` | запустить Codex CLI с prompt | удобно для разовых задач |
+| `Space co` | запустить OpenCode CLI | отдельная CLI-сессия |
 | `ga` | отправить выделенный текст в AI chat | работает в visual mode |
 | `gA` | выбрать reasoning для `private_ai` | открывает picker |
 | `:PrivateAIReasoning` | выбрать reasoning для `private_ai` | можно сразу `:PrivateAIReasoning high` |

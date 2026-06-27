@@ -124,6 +124,12 @@ return {
       mode = 'n',
       desc = 'CodeCompanion: Claude Code CLI',
     },
+    {
+      '<LocalLeader>co',
+      function() require('codecompanion').cli { agent = 'opencode' } end,
+      mode = 'n',
+      desc = 'CodeCompanion: OpenCode CLI',
+    },
     { 'ga', '<cmd>CodeCompanionChat Add<cr>', mode = 'v', desc = 'CodeCompanion: Add selection to chat' },
     { 'gA', '<cmd>PrivateAIReasoning<cr>', mode = 'n', desc = 'CodeCompanion: Select private_ai reasoning' },
   },
@@ -179,6 +185,12 @@ return {
               cmd = 'claude',
               args = {},
               description = 'Claude Code CLI',
+              provider = 'terminal',
+            },
+            opencode = {
+              cmd = 'opencode',
+              args = {},
+              description = 'OpenCode CLI',
               provider = 'terminal',
             },
           },
@@ -284,35 +296,56 @@ return {
               },
             })
           end,
-          grok_xai = function()
-            return require('codecompanion.adapters').extend('openai_responses', {
-              name = 'grok_xai',
-              url = 'https://api.x.ai/v1/responses',
-              env = {
-                api_key = 'XAI_API_KEY',
-              },
-              schema = {
-                model = {
-                  choices = {
-                    'grok-code-fast-1',
-                    'grok-4-1-fast-reasoning',
-                    'grok-4-1-fast-non-reasoning',
-                    'grok-4',
-                    'grok-4.3',
-                  },
-                  default = 'grok-4.3',
-                },
-              },
-            })
-          end,
-          grok_xai_compatible = function()
+          -- Single Grok adapter on `openai_compatible`, pointed at x.ai's
+          -- /v1/chat/completions. This base fetches the model list from
+          -- `models_endpoint` automatically and sends no penalty params, so it
+          -- sidesteps both the `/v1/responses` "ModelInput" error and the
+          -- "does not support parameter presencePenalty" error.
+          grok = function()
             return require('codecompanion.adapters').extend('openai_compatible', {
-              name = 'grok_xai_compatible',
+              name = 'grok',
+              formatted_name = 'Grok',
               env = {
                 url = 'https://api.x.ai',
                 api_key = 'XAI_API_KEY',
                 chat_url = '/v1/chat/completions',
                 models_endpoint = '/v1/models',
+              },
+            })
+          end,
+          -- z.ai (GLM). Keep the models static instead of inheriting
+          -- `openai_compatible`'s `/models` lookup: z.ai's endpoint can return a
+          -- shape without `data`, which breaks background title generation before
+          -- the chat completion request is sent. Free tier has a hard rate limit,
+          -- so the occasional 429 on titles is expected/ignored.
+          zai = function()
+            return require('codecompanion.adapters').extend('openai_compatible', {
+              name = 'zai',
+              formatted_name = 'z.ai (GLM)',
+              env = {
+                url = 'https://api.z.ai/api/paas/v4',
+                api_key = 'ZAI_API_KEY',
+                chat_url = '/chat/completions',
+                models_endpoint = '/models',
+              },
+              schema = {
+                model = {
+                  order = 1,
+                  mapping = 'parameters',
+                  type = 'enum',
+                  desc = 'ID модели z.ai.',
+                  default = 'glm-5.2',
+                  choices = {
+                    'glm-4.5-flash',
+                    'glm-4.7-flash',
+                    'glm-4.1-flash',
+                    'glm-5.2',
+                    'glm-5.1',
+                    'glm-5',
+                    'glm-4.6',
+                    'glm-4.5',
+                  },
+                },
               },
             })
           end,
@@ -339,6 +372,7 @@ return {
               },
             })
           end,
+          opencode = function() return require('codecompanion.adapters').extend('opencode', {}) end,
         },
       },
     }
@@ -376,6 +410,144 @@ return {
     vim.api.nvim_create_autocmd({ 'BufEnter', 'DirChanged' }, {
       group = vim.api.nvim_create_augroup('codecompanion-project-context', { clear = true }),
       callback = sync_runtime_config,
+    })
+
+    -- Chat topic: a short "what this chat is about" label shown as virtual text
+    -- on every `## Me` heading. The heading text itself must stay equal to the
+    -- user role ("Me") or the Tree-sitter parser stops recognising user messages,
+    -- so we never touch the buffer text — only attach virt_text via extmark.
+    --
+    -- The built-in `chat_make_title` keeps managing `chat.title` / buffer name
+    -- (one-shot, on_ready); this is an independent, periodic in-buffer label.
+    --
+    -- Background requests need an HTTP adapter, and private_ai vs the external
+    -- models are mutually exclusive by network:
+    --   * work mode  -> only the private_ai proxy is reachable -> use private_ai
+    --   * external/VPN mode (grok / codex / claude_code chats) -> reach z.ai and
+    --     use its free `glm-4.5-flash` for titles (grok is paid, so not used here)
+    local NS_TOPIC = vim.api.nvim_create_namespace 'cc_topic'
+    local topic_turns = {} -- bufnr -> number of completed responses seen
+    local topics = {} -- bufnr -> current topic string
+    local topic_refresh_every = 10
+
+    -- Returns (adapter_name, model_override?) for title generation.
+    local function topic_backend(chat)
+      local adapter = chat.adapter
+      -- Work mode: the private_ai proxy is reachable, z.ai is not.
+      if adapter and adapter.type == 'http' and adapter.name and adapter.name:match '^private_ai' then return adapter.name, nil end
+      -- External/VPN mode: free z.ai flash (grok stays a chat option, not used here).
+      return 'zai', 'glm-4.5-flash'
+    end
+
+    local function render_topic(bufnr)
+      if not vim.api.nvim_buf_is_valid(bufnr) then return end
+      local topic = topics[bufnr]
+      if not topic then return end
+      local user_role = require('codecompanion.config').interactions.chat.roles.user
+      local pattern = '^##%s+' .. vim.pesc(user_role)
+      vim.api.nvim_buf_clear_namespace(bufnr, NS_TOPIC, 0, -1)
+      for i, line in ipairs(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)) do
+        if line:match(pattern) then
+          vim.api.nvim_buf_set_extmark(bufnr, NS_TOPIC, i - 1, 0, {
+            virt_text = { { '  ' .. topic, 'Comment' } },
+            virt_text_pos = 'eol',
+          })
+        end
+      end
+    end
+
+    local function generate_topic(chat)
+      local bufnr = chat.bufnr
+      -- Reuse the built-in helpers (message formatting + quote stripping).
+      local make_title = require 'codecompanion.interactions.background.builtin.chat_make_title'
+      local constants = require('codecompanion.config').constants
+
+      -- Trimmed slice: first user message + last two exchanges. Keeps the token
+      -- cost roughly constant regardless of how long the chat grows.
+      local msgs = chat.messages or {}
+      local first_user
+      for _, m in ipairs(msgs) do
+        if m.role == constants.USER_ROLE then
+          first_user = m
+          break
+        end
+      end
+      local slice = {}
+      if first_user then table.insert(slice, first_user) end
+      for i = math.max(1, #msgs - 3), #msgs do
+        local m = msgs[i]
+        if m and m ~= first_user then table.insert(slice, m) end
+      end
+
+      local Background = require 'codecompanion.interactions.background'
+      local name, model = topic_backend(chat)
+      local bg = Background.new { adapter = name, settings = model and { model = model } or {} }
+      if not bg then return end
+
+      bg:ask({
+        {
+          role = 'system',
+          content = 'You are an expert in crafting pithy titles for chatbot conversations. Reply with a brief title (8 words or fewer) capturing the main topic. Keep it short and impersonal, no quotes, no Markdown.',
+        },
+        {
+          role = 'user',
+          content = 'Please write a brief title for the following conversation:\n\n' .. make_title.format_messages(slice),
+        },
+      }, {
+        method = 'async',
+        silent = true,
+        on_done = function(result)
+          local topic = make_title.on_done(result)
+          if not topic then return end
+          topics[bufnr] = topic
+          vim.schedule(function() render_topic(bufnr) end)
+        end,
+        on_error = function() end,
+      })
+    end
+
+    local topic_aug = vim.api.nvim_create_augroup('codecompanion-topic', { clear = true })
+
+    -- After each LLM response: (re)generate every Nth turn, otherwise re-render cache.
+    vim.api.nvim_create_autocmd('User', {
+      pattern = 'CodeCompanionChatDone',
+      group = topic_aug,
+      callback = function(ev)
+        local bufnr = ev.data and ev.data.bufnr
+        if not bufnr then return end
+        local chat = require('codecompanion').buf_get_chat(bufnr)
+        if not chat then return end
+        local n = (topic_turns[bufnr] or 0) + 1
+        topic_turns[bufnr] = n
+        if n == 1 or n % topic_refresh_every == 0 then
+          generate_topic(chat)
+        else
+          vim.schedule(function() render_topic(bufnr) end)
+        end
+      end,
+    })
+
+    -- After the user submits: decorate the freshly added `## Me` heading from cache.
+    vim.api.nvim_create_autocmd('User', {
+      pattern = 'CodeCompanionChatSubmitted',
+      group = topic_aug,
+      callback = function(ev)
+        local bufnr = ev.data and ev.data.bufnr
+        if bufnr then vim.schedule(function() render_topic(bufnr) end) end
+      end,
+    })
+
+    -- Drop per-buffer state when the chat closes.
+    vim.api.nvim_create_autocmd('User', {
+      pattern = 'CodeCompanionChatClosed',
+      group = topic_aug,
+      callback = function(ev)
+        local bufnr = ev.data and ev.data.bufnr
+        if bufnr then
+          topic_turns[bufnr] = nil
+          topics[bufnr] = nil
+        end
+      end,
     })
   end,
 }
